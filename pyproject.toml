@@ -18,9 +18,9 @@ authors = [
   {name = "Josh Mcdaniel", email = "80354972+joshrmcdaniel@users.noreply.github.com"},
 ]
 classifiers = [
-  "Development Status :: 3 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
+  "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
