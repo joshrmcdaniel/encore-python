@@ -41,6 +41,8 @@ def _concat_filter(*adv_filters: Tuple[AdvancedSearch]):
 
 
 def _update(d: Mapping, u: Mapping | str | int | float, *, default_d=None):
+    if not isinstance(d, type(u)):
+        raise RuntimeError("Merging advance filters failed.")
     if default_d is None:
         default_d = DEFAULT_SEARCH
     if isinstance(d, (JsonObject, dict)):
