@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
-from typing import Any, Dict
+from typing import Any, Dict, Callable, Optional, Tuple, Mapping, Final
 
 
 import requests
@@ -13,22 +13,68 @@ from ..types import (
     SearchResponse,
     ErrorResponse,
 )
+from ..types.request import AdvancedFilterKwargs
 
 
 @dataclass
 class EncoreAPI:
-    _ratelimit_left = 0
-    _ratelimit_reset = dt.fromtimestamp(0)
-    _ratelimit_total = 50
-    SEARCH_URL = "https://api.enchor.us"
-    DOWNLOAD_URL = "https://files.enchor.us"
+    """
+    Provides a Python interface to interact with the Encore music search and download API.
 
-    create_name_filter = staticmethod(_search_filter("name"))
-    create_album_filter = staticmethod(_search_filter("album"))
-    create_genre_filter = staticmethod(_search_filter("genre"))
-    create_year_filter = staticmethod(_search_filter("year"))
-    create_artist_filter = staticmethod(_search_filter("artist"))
-    create_charter_filter = staticmethod(_search_filter("charter"))
+    This class encapsulates methods for searching music tracks based on various filters,
+    handling rate limits, and constructing search filter objects dynamically.
+
+    Attributes:
+        _ratelimit_left (int): Tracks the remaining number of requests that can be made before rate limiting.
+        _ratelimit_reset (datetime): The time when the rate limit counter will reset.
+        _ratelimit_total (int): The total number of requests allowed within the rate limit window.
+        SEARCH_URL (str): Base URL for the search API endpoint.
+        DOWNLOAD_URL (str): Base URL for the download API endpoint.
+
+    Methods:
+        search: Performs a search operation using either a string query, a `BasicSearch`, or an `AdvancedSearch` object.
+        search_by_artist: Convenience method for searching by artist name with optional additional filters.
+        search_by_album: Convenience method for searching by album name with optional additional filters and artist name.
+        _search: Internal method to execute the search request against the Encore API.
+        _set_rate_limit_info: Internal method to update rate limit information from the API response headers.
+
+    Properties:
+        ratelimit_reset: Getter and setter for the rate limit reset time.
+        ratelimit_left: Getter and setter for the remaining rate limit count.
+        ratelimit_total: Getter and setter for the total rate limit count.
+        headers: Returns the default headers used for API requests, mainly for accepting JSON responses.
+    """
+
+    _ratelimit_left: int = 0
+    _ratelimit_reset: dt = dt.fromtimestamp(0)
+    _ratelimit_total: int = 50
+    SEARCH_URL: Final = "https://api.enchor.us"
+    DOWNLOAD_URL: Final = "https://files.enchor.us"
+
+    create_name_filter: Callable[
+        [str, Optional[Tuple[AdvancedSearch]], bool, bool, Optional[Mapping[str, Any]]],
+        AdvancedSearch,
+    ] = staticmethod(_search_filter("name"))
+    create_album_filter: Callable[
+        [str, Optional[Tuple[AdvancedSearch]], bool, bool, Optional[Mapping[str, Any]]],
+        AdvancedSearch,
+    ] = staticmethod(_search_filter("album"))
+    create_genre_filter: Callable[
+        [str, Optional[Tuple[AdvancedSearch]], bool, bool, Optional[Mapping[str, Any]]],
+        AdvancedSearch,
+    ] = staticmethod(_search_filter("genre"))
+    create_year_filter: Callable[
+        [str, Optional[Tuple[AdvancedSearch]], bool, bool, Optional[Mapping[str, Any]]],
+        AdvancedSearch,
+    ] = staticmethod(_search_filter("year"))
+    create_artist_filter: Callable[
+        [str, Optional[Tuple[AdvancedSearch]], bool, bool, Optional[Mapping[str, Any]]],
+        AdvancedSearch,
+    ] = staticmethod(_search_filter("artist"))
+    create_charter_filter: Callable[
+        [str, Optional[Tuple[AdvancedSearch]], bool, bool, Optional[Mapping[str, Any]]],
+        AdvancedSearch,
+    ] = staticmethod(_search_filter("charter"))
 
     def search(
         self,
@@ -75,14 +121,13 @@ class EncoreAPI:
     def search_by_artist(
         self,
         artist: str,
-        *,
+        *adv_filter_objs: Tuple[AdvancedSearch],
         exact: bool = True,
         exclude: bool = False,
-        **additional_filters,
+        **additional_filters: AdvancedFilterKwargs,
     ):
-        adv_search = AdvancedSearch(
-            artist=SearchFilter(value=artist, exact=exact, exclude=exclude),
-            **additional_filters,
+        adv_search = self.create_artist_filter(
+            artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
         )
 
         return self.search(adv_search)
@@ -90,18 +135,21 @@ class EncoreAPI:
     def search_by_album(
         self,
         album: str,
-        *,
-        artist: str = None,
+        *adv_filter_objs: Tuple[AdvancedSearch],
+        artist: Optional[str] = None,
         exact: bool = True,
         exclude: bool = False,
-        **additional_filters,
+        **additional_filters: AdvancedFilterKwargs,
     ) -> SearchResponse | ErrorResponse:
-        album_params = SearchFilter(value=album, exact=exact, exclude=exclude)
-        adv_search = AdvancedSearch(album=album_params, **additional_filters)
+        params = self.create_album_filter(
+            album, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
+        )
         if artist:
-            adv_search.artist = SearchFilter(value=artist, exact=exact, exclude=exclude)
+            params = self.create_artist_filter(
+                artist, params, exact=exact, exclude=exclude
+            )
 
-        return self.search(adv_search)
+        return self.search(params)
 
     @property
     def ratelimit_reset(self):

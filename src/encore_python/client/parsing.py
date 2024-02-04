@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Iterable
-from typing import Any
+from typing import Any, Tuple, Union, Callable, Optional, TypeAlias
 from jsonobject import JsonObject, JsonArray
 
 from functools import reduce
@@ -8,18 +8,25 @@ from ..types import AdvancedSearch, SearchFilter
 DEFAULT_SEARCH = AdvancedSearch()
 
 
-def _search_filter(search_for: str):
+def _search_filter(
+    search_for: str,
+) -> Callable[
+    [str, Optional[Tuple[AdvancedSearch]], bool, bool, Optional[Mapping[str, Any]]],
+    AdvancedSearch,
+]:
     def inner(
         value: str,
-        *adv_filter_objs,
+        *adv_filter_objs: Tuple[AdvancedSearch],
         exact: bool = True,
         exclude: bool = False,
-        **filter_kwargs,
-    ):
+        **filter_kwargs: Mapping[str, Any],
+    ) -> AdvancedSearch:
         adv_search = AdvancedSearch()
         if adv_filter_objs:
             adv_search = _concat_filter(*adv_filter_objs)
         if filter_kwargs:
+            if not all((x := k) in adv_search for k in filter_kwargs.keys()):
+                raise ValueError(f"{x} is not a valid search parameter")
             adv_search.update(**filter_kwargs)
         adv_search[search_for] = SearchFilter(value=value, exact=exact, exclude=exclude)
         return adv_search
