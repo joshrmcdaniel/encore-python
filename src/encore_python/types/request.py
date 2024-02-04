@@ -6,8 +6,9 @@ from .shared import valid_per_page, positive_num, valid_hash, instruments, diffi
 
 
 __all__ = [
-    "BasicSearch",
     "SearchFilter",
+    "BasicSearch",
+    "BasicSearchOpts",
     "AdvancedSearch",
     "AdvancedSearchOpts",
 ]
@@ -32,16 +33,16 @@ class BasicSearch(jsonobject.JsonObject):
                           None represents any difficulty
     """
 
-    search = jsonobject.StringProperty(name="search")
+    search = jsonobject.StringProperty(name="search", required=True)
     per_page = jsonobject.IntegerProperty(
-        name="per_page", validators=valid_per_page, required=False, exclude_if_none=True
+        name="per_page", validators=valid_per_page, required=False, exclude_if_none=True, default=20
     )
-    page = jsonobject.IntegerProperty(name="page", validators=positive_num, default=1)
+    page = jsonobject.IntegerProperty(name="page", validators=positive_num, default=1, required=True)
     instrument = jsonobject.StringProperty(
-        name="instrument", choices=instruments, exclude_if_none=False
+        name="instrument", choices=instruments, exclude_if_none=False, default=None
     )
     difficulty = jsonobject.StringProperty(
-        name="difficulty", choices=difficulties, exclude_if_none=False
+        name="difficulty", choices=difficulties, exclude_if_none=False, default=None
     )
 
 
