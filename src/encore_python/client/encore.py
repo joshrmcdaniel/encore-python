@@ -138,7 +138,7 @@ class EncoreAPI:
     def search_by_artist(
         self,
         artist: str,
-        *adv_filter_objs: Tuple[AdvancedSearch],
+        *adv_filter_objs: Optional[Tuple[AdvancedSearch]],
         exact: bool = True,
         exclude: bool = False,
         **additional_filters: AdvancedSearchOpts,
@@ -168,7 +168,7 @@ class EncoreAPI:
     def search_by_album(
         self,
         album: str,
-        *adv_filter_objs: Tuple[AdvancedSearch],
+        *adv_filter_objs: Optional[Tuple[AdvancedSearch]],
         artist: Optional[str] = None,
         exact: bool = True,
         exclude: bool = False,
