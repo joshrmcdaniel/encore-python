@@ -9,7 +9,7 @@ from .response import (
     NotesPerSecondMetaData,
     NotesPerSecond,
     Song,
-    ErrorMessage
+    ErrorMessage,
 )
 
 __all__ = [
@@ -25,5 +25,5 @@ __all__ = [
     "NotesPerSecondMetaData",
     "NotesPerSecond",
     "Song",
-    "ErrorMessage"
+    "ErrorMessage",
 ]

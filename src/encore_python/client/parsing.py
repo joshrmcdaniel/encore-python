@@ -7,14 +7,15 @@ from ..types import AdvancedSearch, SearchFilter
 
 DEFAULT_SEARCH = AdvancedSearch()
 
+
 def _search_filter(search_for: str):
     def inner(
         value: str,
         *adv_filter_objs,
         exact: bool = True,
         exclude: bool = False,
-        **filter_kwargs
-        ):
+        **filter_kwargs,
+    ):
         adv_search = AdvancedSearch()
         if adv_filter_objs:
             adv_search = _concat_filter(*adv_filter_objs)
@@ -22,6 +23,7 @@ def _search_filter(search_for: str):
             adv_search.update(**filter_kwargs)
         adv_search[search_for] = SearchFilter(value=value, exact=exact, exclude=exclude)
         return adv_search
+
     return inner
 
 
