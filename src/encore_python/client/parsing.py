@@ -35,13 +35,13 @@ def _search_filter(
     return inner
 
 
-def _concat_filter(*adv_filters: Tuple[AdvancedSearch]):
+def _concat_filter(*adv_filters: Tuple[AdvancedSearch]) -> AdvancedSearch:
     if len(adv_filters) == 1:
         return adv_filters[0]
     return reduce(_update, adv_filters)
 
 
-def _update(d: Mapping, u: Mapping | str | int | float, *, default_d=None):
+def _update(d: Mapping, u: Mapping | str | int | float, *, default_d=None) -> AdvancedSearch:
     if not isinstance(d, type(u)):
         raise RuntimeError("Merging advance filters failed.")
     if default_d is None:
