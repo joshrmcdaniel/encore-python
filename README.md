@@ -10,11 +10,11 @@ Python API wrapper for encore.us
 
 ## Installation
 
-To install encore-python, clone the repo and run:
+To install encore-python, run:
 
 ```bash
 cd encore-python 
-pip install -e .
+pip install encore-python
 ```
 
 ## Usage
