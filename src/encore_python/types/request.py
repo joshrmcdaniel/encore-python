@@ -63,6 +63,9 @@ class SearchFilter(jsonobject.JsonObject):
     exact = jsonobject.BooleanProperty(name="exact", default=False)
     exclude = jsonobject.BooleanProperty(name="exclude", default=False)
 
+    def __repr__(self) -> str:
+        return f'{self.value} <exact: {self.exact}, exclude: {self.exclude}>'
+
 
 class AdvancedSearch(jsonobject.JsonObject):
     """
@@ -150,6 +153,18 @@ class AdvancedSearch(jsonobject.JsonObject):
     chart_id_after = jsonobject.IntegerProperty(
         name="chartIdAfter", validators=positive_num, exclude_if_none=True
     )
+
+    def __repr__(self) -> str:
+        tmp = []
+        for k, v in self.items():
+            if v is None:
+                   tmp.append(f'{k}=any') 
+            elif isinstance(v, SearchFilter):
+                if v.value:
+                    tmp.append(f'{k}={repr(v)}')
+            else:
+                tmp.append(f'{k}={v}')
+        return f'AdvancedSearch({", ".join(tmp)})'
 
 
 class BasicSearchOpts(TypedDict):

@@ -4,6 +4,7 @@ from typing import Any, Callable, Optional, Tuple, Mapping, Final
 
 
 import requests
+import logging
 
 from .parsing import _search_filter
 from ..types import (
@@ -19,6 +20,7 @@ from ..types import (
 from ..types.request import EncoreRequestHeaders
 
 __all__ = ["EncoreAPI"]
+logger = logging.getLogger(__package__)
 
 
 @dataclass
@@ -82,7 +84,7 @@ class EncoreAPI:
             difficulty (str, optional): Filter results by specified difficulty level.
 
         Returns:
-            SearchResponse | ErrorResponse: The search results or an error response, 
+            SearchResponse | ErrorResponse: The search results or an error response,
                                             depending on the outcome of the API call.
         """
         if isinstance(query, str):
@@ -100,6 +102,7 @@ class EncoreAPI:
             print(f"Cannot search, wait until {x.isoformat()}")
             return
         res = self._search(query_json=query, advanced=adv_search)
+        logger.debug("Search returned status of %d", res.status_code)
         self._set_rate_limit_info(res)
         try:
             res.raise_for_status()
@@ -126,6 +129,7 @@ class EncoreAPI:
         endpoint = "/search"
         if advanced:
             endpoint += "/advanced"
+        logger.debug("Running search on %s", endpoint)
         return requests.post(
             self.SEARCH_URL + endpoint, json=query_json, headers=self.headers
         )
@@ -134,6 +138,12 @@ class EncoreAPI:
         self.ratelimit_total = r.headers["X-RateLimit-Limit"]
         self.ratelimit_reset = r.headers["X-RateLimit-Reset"]
         self.ratelimit_left = r.headers["X-RateLimit-Remaining"]
+        logger.debug(
+            "%d queries done, %d remaining. Ratelimit resets at %s",
+            self.ratelimit_total,
+            self.ratelimit_left,
+            self.ratelimit_reset.isoformat(),
+        )
 
     def search_by_artist(
         self,
@@ -143,9 +153,6 @@ class EncoreAPI:
         exclude: bool = False,
         **additional_filters: AdvancedSearchOpts,
     ) -> SearchResponse | ErrorResponse:
-        adv_search = self.create_artist_filter(
-            artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
-        )
         """
         Search music tracks by artist name, with optional additional filters.
 
@@ -162,6 +169,10 @@ class EncoreAPI:
         Returns:
             SearchResponse | ErrorResponse: The search results or an error response.
         """
+
+        adv_search = self.create_artist_filter(
+            artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
+        )
 
         return self.search(adv_search)
 
