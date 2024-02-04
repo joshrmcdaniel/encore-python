@@ -13,41 +13,18 @@ from ..types import (
     AdvancedSearchOpts,
     SearchResponse,
     ErrorResponse,
+    Song,
 )
 
 from ..types.request import EncoreRequestHeaders
 
-__all__ = [
-    "EncoreAPI"
-]
+__all__ = ["EncoreAPI"]
+
 
 @dataclass
 class EncoreAPI:
     """
-    Provides a Python interface to interact with the Encore music search and download API.
-
-    This class encapsulates methods for searching music tracks based on various filters,
-    handling rate limits, and constructing search filter objects dynamically.
-
-    Attributes:
-        _ratelimit_left (int): Tracks the remaining number of requests that can be made before rate limiting.
-        _ratelimit_reset (datetime): The time when the rate limit counter will reset.
-        _ratelimit_total (int): The total number of requests allowed within the rate limit window.
-        SEARCH_URL (str): Base URL for the search API endpoint.
-        DOWNLOAD_URL (str): Base URL for the download API endpoint.
-
-    Methods:
-        search: Performs a search operation using either a string query, a `BasicSearch`, or an `AdvancedSearch` object.
-        search_by_artist: Convenience method for searching by artist name with optional additional filters.
-        search_by_album: Convenience method for searching by album name with optional additional filters and artist name.
-        _search: Internal method to execute the search request against the Encore API.
-        _set_rate_limit_info: Internal method to update rate limit information from the API response headers.
-
-    Properties:
-        ratelimit_reset: Getter and setter for the rate limit reset time.
-        ratelimit_left: Getter and setter for the remaining rate limit count.
-        ratelimit_total: Getter and setter for the total rate limit count.
-        headers: Returns the default headers used for API requests, mainly for accepting JSON responses.
+    Python interface to interact with the Encore music search and download API.
     """
 
     _ratelimit_left: int = 0
@@ -90,6 +67,24 @@ class EncoreAPI:
         instrument: str = None,
         difficulty: str = None,
     ) -> SearchResponse | ErrorResponse:
+        """
+        Executes a search query against the Encore API.
+
+        This method can handle simple string queries as well as structured `BasicSearch` and `AdvancedSearch` objects.
+        Depending on the query type, it constructs the appropriate request to the API, handling rate limits and
+        parsing the response.
+
+        Parameters:
+            query (str | AdvancedSearch | BasicSearch): The search query or object.
+            per_page (int): The number of results to return per page. Default is 20.
+            page (int): The page number of the search results to return. Default is 1.
+            instrument (str, optional): Filter results by specified instrument.
+            difficulty (str, optional): Filter results by specified difficulty level.
+
+        Returns:
+            SearchResponse | ErrorResponse: The search results or an error response, 
+                                            depending on the outcome of the API call.
+        """
         if isinstance(query, str):
             query = BasicSearch(
                 search=query,
@@ -112,11 +107,28 @@ class EncoreAPI:
         except:
             return ErrorResponse(res.json())
 
-    def _search(self, *, query_json: BasicSearchOpts | AdvancedSearchOpts, advanced: bool) -> requests.Response:
+    def _search(
+        self, *, query_json: BasicSearchOpts | AdvancedSearchOpts, advanced: bool
+    ) -> requests.Response:
+        """
+        Internal method to perform the actual API request for a search operation.
+
+        Constructs the request based on whether it's a basic or advanced search,
+        serializes the query parameters into JSON, and sends the request to the Encore API.
+
+        Parameters:
+            query_json (BasicSearchOpts | AdvancedSearchOpts): The search query parameters serialized as JSON.
+            advanced (bool): Flag indicating whether the search is an advanced search.
+
+        Returns:
+            requests.Response: The raw response from the API.
+        """
         endpoint = "/search"
         if advanced:
             endpoint += "/advanced"
-        return requests.post(self.SEARCH_URL + endpoint, json=query_json)
+        return requests.post(
+            self.SEARCH_URL + endpoint, json=query_json, headers=self.headers
+        )
 
     def _set_rate_limit_info(self, r: requests.Response):
         self.ratelimit_total = r.headers["X-RateLimit-Limit"]
@@ -134,6 +146,22 @@ class EncoreAPI:
         adv_search = self.create_artist_filter(
             artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
         )
+        """
+        Search music tracks by artist name, with optional additional filters.
+
+        Allows for exact or fuzzy matching, inclusion or exclusion of the specified artist,
+        and additional filtering using advanced search options.
+
+        Parameters:
+            artist (str): The artist name to search for.
+            adv_filter_objs (Tuple[AdvancedSearch]): Additional advanced search filter objects to use with the search query.
+            exact (bool): Flag for exact matching on the artist name. Default is True.
+            exclude (bool): Flag for excluding the specified artist from the results. Default is False.
+            additional_filters (AdvancedSearchOpts): Additional filter options as keyword arguments.
+
+        Returns:
+            SearchResponse | ErrorResponse: The search results or an error response.
+        """
 
         return self.search(adv_search)
 
@@ -146,6 +174,23 @@ class EncoreAPI:
         exclude: bool = False,
         **additional_filters: AdvancedSearchOpts,
     ) -> SearchResponse | ErrorResponse:
+        """
+        Search music tracks by album name, with optional artist name and additional filters.
+
+        Allows for exact or fuzzy matching, inclusion or exclusion of the specified album,
+        and additional filtering using advanced search options.
+
+        Parameters:
+            album (str): The album name to search for.
+            adv_filter_objs (Tuple[AdvancedSearch]): Additional advanced search filter objects to use with the search query.
+            artist (str, optional): An optional artist name to further filter the search.
+            exact (bool): Flag for exact matching on the album name. Default is True.
+            exclude (bool): Flag for excluding the specified album from the results. Default is False.
+            additional_filters (AdvancedSearchOpts): Additional filter options as keyword arguments.
+
+        Returns:
+            SearchResponse | ErrorResponse: The search results or an error response.
+        """
         params = self.create_album_filter(
             album, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
         )
@@ -155,6 +200,25 @@ class EncoreAPI:
             )
 
         return self.search(params)
+
+    def download(self, song: str | Song) -> bytes:
+        """
+        Downloads a song from the Encore API.
+
+        Accepts either a song md5 string or a `Song` object, retrieves the specified song md5 from the API,
+        and returns the file content as bytes.
+
+        Parameters:
+            song (str | Song): The song identifier or `Song` object to download.
+
+        Returns:
+            bytes: The downloaded song file content.
+        """
+        if isinstance(song, Song):
+            song = song.md5
+        res = requests.get(f"{self.DOWNLOAD_URL}/{song}.sng", headers=self.headers)
+        res.raise_for_status()
+        return res.content
 
     @property
     def ratelimit_reset(self) -> dt:
