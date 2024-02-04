@@ -8,7 +8,7 @@ description = "Python API wrapper for encore.us"
 readme = "README.md"
 keywords = ["sng", ".sng", "clone hero", "ch", "file", "sng-format", "sng-parse"]
 license = {file = "LICENSE"}
-version = "0.1.0"
+version = "1.0.0"
 requires-python = ">= 3.10"
 dependencies = [
   "requests",
