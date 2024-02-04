@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
-from typing import Any, Dict, Callable, Optional, Tuple, Mapping, Final, Literal
+from typing import Any, Callable, Optional, Tuple, Mapping, Final
 
 
 import requests
@@ -8,11 +8,14 @@ import requests
 from .parsing import _search_filter
 from ..types import (
     BasicSearch,
+    BasicSearchOpts,
     AdvancedSearch,
+    AdvancedSearchOpts,
     SearchResponse,
     ErrorResponse,
 )
-from ..types.request import AdvancedFilterOpts, EncoreRequestHeaders
+
+from ..types.request import EncoreRequestHeaders
 
 __all__ = [
     "EncoreAPI"
@@ -109,7 +112,7 @@ class EncoreAPI:
         except:
             return ErrorResponse(res.json())
 
-    def _search(self, *, query_json: Dict[str, Any], advanced: bool) -> requests.Response:
+    def _search(self, *, query_json: BasicSearchOpts | AdvancedSearchOpts, advanced: bool) -> requests.Response:
         endpoint = "/search"
         if advanced:
             endpoint += "/advanced"
@@ -126,7 +129,7 @@ class EncoreAPI:
         *adv_filter_objs: Tuple[AdvancedSearch],
         exact: bool = True,
         exclude: bool = False,
-        **additional_filters: AdvancedFilterOpts,
+        **additional_filters: AdvancedSearchOpts,
     ) -> SearchResponse | ErrorResponse:
         adv_search = self.create_artist_filter(
             artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
@@ -141,7 +144,7 @@ class EncoreAPI:
         artist: Optional[str] = None,
         exact: bool = True,
         exclude: bool = False,
-        **additional_filters: AdvancedFilterOpts,
+        **additional_filters: AdvancedSearchOpts,
     ) -> SearchResponse | ErrorResponse:
         params = self.create_album_filter(
             album, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters

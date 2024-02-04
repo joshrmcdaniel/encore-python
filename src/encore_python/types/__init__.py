@@ -1,4 +1,4 @@
-from .request import SearchFilter, BasicSearch, AdvancedSearch
+from .request import SearchFilter, BasicSearch, AdvancedSearch, AdvancedSearchOpts, BasicSearchOpts
 from .response import (
     ErrorResponse,
     SearchResponse,
@@ -13,6 +13,8 @@ from .response import (
 )
 
 __all__ = [
+    "AdvancedSearchOpts",
+    "BasicSearchOpts",
     "SearchFilter",
     "BasicSearch",
     "AdvancedSearch",

@@ -6,11 +6,12 @@ from .shared import valid_per_page, positive_num, valid_hash, instruments, diffi
 
 
 __all__ = [
-    'BasicSearch',
-    'SearchFilter',
-    'AdvancedSearch',
-    'AdvancedFilterOpts',
+    "BasicSearch",
+    "SearchFilter",
+    "AdvancedSearch",
+    "AdvancedSearchOpts",
 ]
+
 
 class BasicSearch(jsonobject.JsonObject):
     """
@@ -150,7 +151,29 @@ class AdvancedSearch(jsonobject.JsonObject):
     )
 
 
-class AdvancedFilterOpts(TypedDict):
+class BasicSearchOpts(TypedDict):
+    search: str
+    per_page: Optional[int]
+    page: Optional[int]
+    instrument: Optional[
+        Literal[
+            "guitar",
+            "guitarcoop",
+            "rhythm",
+            "bass",
+            "drums",
+            "keys",
+            "guitarghl",
+            "guitarcoopghl",
+            "rhythmghl",
+            "bassghl",
+            None,
+        ]
+    ]
+    difficulty: Optional[Literal["expert", "hard", "medium", "easy", None]]
+
+
+class AdvancedSearchOpts(TypedDict):
     instrument: Optional[
         Literal[
             "guitar",
