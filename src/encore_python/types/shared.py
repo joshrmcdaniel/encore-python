@@ -2,6 +2,7 @@ import re
 
 md5_regex = re.compile(r"[a-f0-9]{32}$")
 
+__all__ = []
 
 def valid_per_page(i: int) -> int:
     if 0 < i <= 250:

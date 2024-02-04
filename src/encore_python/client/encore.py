@@ -9,12 +9,14 @@ from .parsing import _search_filter
 from ..types import (
     BasicSearch,
     AdvancedSearch,
-    SearchFilter,
     SearchResponse,
     ErrorResponse,
 )
-from ..types.request import AdvancedFilterKwargs, EncoreRequestHeaders
+from ..types.request import AdvancedFilterOpts, EncoreRequestHeaders
 
+__all__ = [
+    "EncoreAPI"
+]
 
 @dataclass
 class EncoreAPI:
@@ -124,7 +126,7 @@ class EncoreAPI:
         *adv_filter_objs: Tuple[AdvancedSearch],
         exact: bool = True,
         exclude: bool = False,
-        **additional_filters: AdvancedFilterKwargs,
+        **additional_filters: AdvancedFilterOpts,
     ) -> SearchResponse | ErrorResponse:
         adv_search = self.create_artist_filter(
             artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
@@ -139,7 +141,7 @@ class EncoreAPI:
         artist: Optional[str] = None,
         exact: bool = True,
         exclude: bool = False,
-        **additional_filters: AdvancedFilterKwargs,
+        **additional_filters: AdvancedFilterOpts,
     ) -> SearchResponse | ErrorResponse:
         params = self.create_album_filter(
             album, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters

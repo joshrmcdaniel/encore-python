@@ -5,6 +5,13 @@ from typing import TypedDict, Literal, Optional
 from .shared import valid_per_page, positive_num, valid_hash, instruments, difficulties
 
 
+__all__ = [
+    'BasicSearch',
+    'SearchFilter',
+    'AdvancedSearch',
+    'AdvancedFilterOpts',
+]
+
 class BasicSearch(jsonobject.JsonObject):
     """
     A class representing a basic search query, using `jsonobject.JsonObject`.
@@ -143,7 +150,7 @@ class AdvancedSearch(jsonobject.JsonObject):
     )
 
 
-class AdvancedFilterKwargs(TypedDict):
+class AdvancedFilterOpts(TypedDict):
     instrument: Optional[
         Literal[
             "guitar",
