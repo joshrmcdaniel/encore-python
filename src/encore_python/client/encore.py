@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
-from typing import Any, Dict, Callable, Optional, Tuple, Mapping, Final
+from typing import Any, Dict, Callable, Optional, Tuple, Mapping, Final, Literal
 
 
 import requests
@@ -13,7 +13,7 @@ from ..types import (
     SearchResponse,
     ErrorResponse,
 )
-from ..types.request import AdvancedFilterKwargs
+from ..types.request import AdvancedFilterKwargs, EncoreRequestHeaders
 
 
 @dataclass
@@ -107,7 +107,7 @@ class EncoreAPI:
         except:
             return ErrorResponse(res.json())
 
-    def _search(self, *, query_json: Dict[str, Any], advanced: bool):
+    def _search(self, *, query_json: Dict[str, Any], advanced: bool) -> requests.Response:
         endpoint = "/search"
         if advanced:
             endpoint += "/advanced"
@@ -125,7 +125,7 @@ class EncoreAPI:
         exact: bool = True,
         exclude: bool = False,
         **additional_filters: AdvancedFilterKwargs,
-    ):
+    ) -> SearchResponse | ErrorResponse:
         adv_search = self.create_artist_filter(
             artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
         )
@@ -152,7 +152,7 @@ class EncoreAPI:
         return self.search(params)
 
     @property
-    def ratelimit_reset(self):
+    def ratelimit_reset(self) -> dt:
         return self._ratelimit_reset
 
     @ratelimit_reset.setter
@@ -162,7 +162,7 @@ class EncoreAPI:
         self._ratelimit_reset = dt.fromtimestamp(value)
 
     @property
-    def ratelimit_left(self):
+    def ratelimit_left(self) -> int:
         return self._ratelimit_left
 
     @ratelimit_left.setter
@@ -172,7 +172,7 @@ class EncoreAPI:
         self._ratelimit_left = value
 
     @property
-    def ratelimit_total(self):
+    def ratelimit_total(self) -> int:
         return self._ratelimit_total
 
     @ratelimit_total.setter
@@ -182,5 +182,5 @@ class EncoreAPI:
         self._ratelimit_total = value
 
     @property
-    def headers(self):
+    def headers(self) -> EncoreRequestHeaders:
         return {"Accept": "application/json"}

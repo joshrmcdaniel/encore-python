@@ -190,3 +190,7 @@ class AdvancedFilterKwargs(TypedDict):
     has_video_background: Optional[bool]
     modchart: Optional[bool]
     chart_id_after: Optional[int]
+
+
+class EncoreRequestHeaders(TypedDict):
+    Accept: Literal["application/json"]

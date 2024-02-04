@@ -34,7 +34,7 @@ def _search_filter(
     return inner
 
 
-def _concat_filter(*adv_filters):
+def _concat_filter(*adv_filters: Tuple[AdvancedSearch]):
     if len(adv_filters) == 1:
         return adv_filters[0]
     return reduce(_update, adv_filters)
