@@ -13,7 +13,7 @@ requires-python = ">= 3.10"
 dependencies = [
   "requests",
   "jsonobject",
-  "sng-parser"
+  "sng-parser== 1.1.0"
 ]
 authors = [
   {name = "Josh Mcdaniel", email = "80354972+joshrmcdaniel@users.noreply.github.com"},

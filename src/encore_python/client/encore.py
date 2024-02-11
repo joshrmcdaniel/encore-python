@@ -1,9 +1,10 @@
 import logging
+import os
 import tempfile
 
 from dataclasses import dataclass
 from datetime import datetime as dt
-from typing import Any, Callable, Optional, Tuple, Mapping, Final, Generator
+from typing import Any, Callable, Optional, Tuple, Mapping, Final, Generator, Iterator
 
 
 import requests
@@ -87,6 +88,8 @@ class EncoreAPI:
             page (int): The page number of the search results to return. Default is 1.
             instrument (str, optional): Filter results by specified instrument.
             difficulty (str, optional): Filter results by specified difficulty level.
+            iter_results (bool, optional): Return a generator containing the `Song` object of all results.
+            Defaults to False
 
         Returns:
             SearchResponse | ErrorResponse: The search results or an error response,
@@ -193,6 +196,8 @@ class EncoreAPI:
             exact (bool): Flag for exact matching on the artist name. Default is True.
             exclude (bool): Flag for excluding the specified artist from the results. Default is False.
             additional_filters (AdvancedSearchOpts): Additional filter options as keyword arguments.
+            iter_results (bool, optional): Return a generator containing the `Song` object of all results.
+            Defaults to False
 
         Returns:
             SearchResponse | ErrorResponse: The search results or an error response.
@@ -227,6 +232,8 @@ class EncoreAPI:
             exact (bool): Flag for exact matching on the album name. Default is True.
             exclude (bool): Flag for excluding the specified album from the results. Default is False.
             additional_filters (AdvancedSearchOpts): Additional filter options as keyword arguments.
+            iter_results (bool, optional): Return a generator containing the `Song` object of all results.
+            Defaults to False
 
         Returns:
             SearchResponse | ErrorResponse: The search results or an error response.
@@ -245,40 +252,65 @@ class EncoreAPI:
         self,
         song: str | Song,
         *,
+        as_sng: bool = True,
+        as_buffer: bool = False,
         outdir: Optional[str] = None,
         sng_dir: Optional[str] = None,
         allow_nonsng_files: bool = False,
         overwrite: bool = False,
-    ) -> None:
+    ) -> None | Iterator[bytes]:
         """
         Downloads a song from the Encore API.
 
         Accepts either a song md5 string or a `Song` object, retrieves the specified song md5 from the API,
-        and writes the decoded file to disk.
+        and writes the file to disk or is returned as a buffer. The option to decode the file is allowed by setting `as_sng` to False
 
+        See [sng-format-python](https://github.com/joshrmcdaniel/sng-format-python/blob/v1.1.0/README.md#usage) docs for sng conversion args
         Parameters:
             song (str | Song): The song identifier or `Song` object to download.
+            as_sng (bool, optional): To store the song as .sng. Defaults to True.
+            as_buffer (bool, optional): Return the content buffer. Defaults to False
+            outdir: (str, optional): Output dir of the file. Defaults to working directory
+            sng_dir (str, optional): Directory name of the converted sng file. Only needed when
+            converting from the .sng format. Generated from metadata if not specified.
+            allow_nonsng_files (bool, optional): Allow files not specified in the sng format to
+            be decoded. Defaults to False.
+            overwrite (bool, optional): Overwrite the existing song path if exists. Defaults to False.
 
         Returns:
             None: The downloaded song file content.
         """
         if isinstance(song, Song):
             song = song.md5
+        filename = f'{song}.sng'
         res = requests.get(
-            f"{self.DOWNLOAD_URL}/{song}.sng", headers=self.headers, stream=True
+            f"{self.DOWNLOAD_URL}/{filename}", headers=self.headers, stream=True
         )
         res.raise_for_status()
-        with tempfile.TemporaryFile("wb+") as tmp:
-            for chunk in res.iter_content(1024):
-                tmp.write(chunk)
-            tmp.seek(0)
-            decode_sng(
-                tmp,
-                outdir=outdir,
-                allow_nonsng_files=allow_nonsng_files,
-                sng_dir=sng_dir,
-                overwrite=overwrite,
-            )
+        if as_buffer:
+            return res.iter_content(1024)
+
+        if as_sng:
+            out = open(os.path.join(outdir, filename), 'wb')
+        else:
+            out = tempfile.TemporaryFile("wb+")
+
+        for chunk in res.iter_content(1024):
+            out.write(chunk)
+
+        if as_sng:
+            out.close()
+            return
+
+        out.seek(0)
+        decode_sng(
+            out,
+            outdir=outdir,
+            allow_nonsng_files=allow_nonsng_files,
+            sng_dir=sng_dir,
+            overwrite=overwrite
+        )
+        out.close()
 
     @property
     def ratelimit_reset(self) -> dt:
