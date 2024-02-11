@@ -1,10 +1,14 @@
+import logging
+import tempfile
+
 from dataclasses import dataclass
 from datetime import datetime as dt
-from typing import Any, Callable, Optional, Tuple, Mapping, Final
+from typing import Any, Callable, Optional, Tuple, Mapping, Final, Generator
 
 
 import requests
-import logging
+
+from sng_parser import decode_sng
 
 from .parsing import _search_filter
 from ..types import (
@@ -68,7 +72,8 @@ class EncoreAPI:
         page: int = 1,
         instrument: str = None,
         difficulty: str = None,
-    ) -> SearchResponse | ErrorResponse:
+        iter_results: bool = False,
+    ) -> SearchResponse | ErrorResponse | Generator[Song, None, None]:
         """
         Executes a search query against the Encore API.
 
@@ -103,12 +108,32 @@ class EncoreAPI:
             return
         res = self._search(query_json=query, advanced=adv_search)
         logger.debug("Search returned status of %d", res.status_code)
-        self._set_rate_limit_info(res)
         try:
             res.raise_for_status()
-            return SearchResponse(res.json())
+            resp = SearchResponse(res.json())
+            if iter_results:
+                return self._iter_results(query=query, resp=resp)
         except:
             return ErrorResponse(res.json())
+
+    def _iter_results(
+        self, query: AdvancedSearch | BasicSearch, *, resp: SearchResponse
+    ) -> Generator[Song, None, None]:
+        adv_search = isinstance(query, AdvancedSearch)
+        itered = 0
+        while itered != resp.found:
+            for res in resp.data:
+                itered += 1
+                yield res
+            if itered != resp.found:
+                query.page += 1
+
+            resp = self._search(query_json=query, advanced=adv_search)
+            try:
+                resp.raise_for_status()
+                resp = SearchResponse(resp.json())
+            except:
+                return ErrorResponse(resp.json())
 
     def _search(
         self, *, query_json: BasicSearchOpts | AdvancedSearchOpts, advanced: bool
@@ -130,9 +155,11 @@ class EncoreAPI:
         if advanced:
             endpoint += "/advanced"
         logger.debug("Running search on %s", endpoint)
-        return requests.post(
+        res = requests.post(
             self.SEARCH_URL + endpoint, json=query_json, headers=self.headers
         )
+        self._set_rate_limit_info(res)
+        return res
 
     def _set_rate_limit_info(self, r: requests.Response):
         self.ratelimit_total = r.headers["X-RateLimit-Limit"]
@@ -151,6 +178,7 @@ class EncoreAPI:
         *adv_filter_objs: Optional[Tuple[AdvancedSearch]],
         exact: bool = True,
         exclude: bool = False,
+        iter_results: bool = False,
         **additional_filters: AdvancedSearchOpts,
     ) -> SearchResponse | ErrorResponse:
         """
@@ -174,7 +202,7 @@ class EncoreAPI:
             artist, *adv_filter_objs, exact=exact, exclude=exclude, **additional_filters
         )
 
-        return self.search(adv_search)
+        return self.search(adv_search, iter_results=iter_results)
 
     def search_by_album(
         self,
@@ -183,6 +211,7 @@ class EncoreAPI:
         artist: Optional[str] = None,
         exact: bool = True,
         exclude: bool = False,
+        iter_results: bool = False,
         **additional_filters: AdvancedSearchOpts,
     ) -> SearchResponse | ErrorResponse:
         """
@@ -210,26 +239,46 @@ class EncoreAPI:
                 artist, params, exact=exact, exclude=exclude
             )
 
-        return self.search(params)
+        return self.search(params, iter_results=iter_results)
 
-    def download(self, song: str | Song) -> bytes:
+    def download(
+        self,
+        song: str | Song,
+        *,
+        outdir: Optional[str] = None,
+        sng_dir: Optional[str] = None,
+        allow_nonsng_files: bool = False,
+        overwrite: bool = False,
+    ) -> None:
         """
         Downloads a song from the Encore API.
 
         Accepts either a song md5 string or a `Song` object, retrieves the specified song md5 from the API,
-        and returns the file content as bytes.
+        and writes the decoded file to disk.
 
         Parameters:
             song (str | Song): The song identifier or `Song` object to download.
 
         Returns:
-            bytes: The downloaded song file content.
+            None: The downloaded song file content.
         """
         if isinstance(song, Song):
             song = song.md5
-        res = requests.get(f"{self.DOWNLOAD_URL}/{song}.sng", headers=self.headers)
+        res = requests.get(
+            f"{self.DOWNLOAD_URL}/{song}.sng", headers=self.headers, stream=True
+        )
         res.raise_for_status()
-        return res.content
+        with tempfile.TemporaryFile("wb+") as tmp:
+            for chunk in res.iter_content(1024):
+                tmp.write(chunk)
+            tmp.seek(0)
+            decode_sng(
+                tmp,
+                outdir=outdir,
+                allow_nonsng_files=allow_nonsng_files,
+                sng_dir=sng_dir,
+                overwrite=overwrite,
+            )
 
     @property
     def ratelimit_reset(self) -> dt:
