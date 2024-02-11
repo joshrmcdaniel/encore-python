@@ -44,6 +44,8 @@ For more complex queries involving multiple criteria:
 # Advanced search by artist with additional filters
 response = api.search_by_artist("Artist Name", exact=True)
 ```
+### Iterating search results
+The ability to iterate through all results is avaiable with the `iter_results` arg
 
 ### Downloading Tracks
 Downloading tracks is available. Available options include: sng file, convert from the sng format to the directory format, and returning a buffer. 
